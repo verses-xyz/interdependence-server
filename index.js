@@ -15,7 +15,7 @@ const client = new Twitter({
   bearer_token: process.env.BEARER_TOKEN
 })
 
-app.get('/healthz', (req, res) => {
+app.get('/', (req, res) => {
   res.send('ok')
 })
 
