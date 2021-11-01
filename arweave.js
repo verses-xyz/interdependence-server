@@ -9,7 +9,7 @@ const arweave = Arweave.init({
   logging: false,
 })
 
-const ADMIN_ADDR = JSON.parse(process.env.ARWEAVE_ADDRESS)
+const ADMIN_ADDR = process.env.ARWEAVE_ADDRESS
 const KEY = JSON.parse(process.env.ARWEAVE_KEY)
 const DOC_TYPE = "interdependence_doc_type"
 const DOC_ORIGIN = "interdependence_doc_origin"
@@ -21,7 +21,7 @@ const SIG_ISVERIFIED = "interdependence_sig_verified"
 const VERIFICATION_HANDLE = "interdependence_verif_handle"
 const VERIFICATION_ADDR = "interdependence_verif_addr"
 
-export async function checkIfVerified(handle, address) {
+async function checkIfVerified(handle, address) {
   const req = await fetch('https://arweave.net/graphql', {
     method: 'POST',
     headers: {
@@ -71,7 +71,7 @@ export async function checkIfVerified(handle, address) {
   return false
 }
 
-export async function persistVerification(handle, address) {
+async function persistVerification(handle, address) {
   let transaction = await arweave.createTransaction({
     data: handle
   }, KEY)
@@ -85,7 +85,7 @@ export async function persistVerification(handle, address) {
   }
 }
 
-export async function signDeclaration(declarationId, address, name, handle, isVerified) {
+async function signDeclaration(declarationId, address, name, handle, isVerified) {
   let transaction = await arweave.createTransaction({ data: handle }, KEY)
   transaction.addTag(DOC_TYPE, 'signature')
   transaction.addTag(DOC_REF, declarationId)
@@ -95,4 +95,8 @@ export async function signDeclaration(declarationId, address, name, handle, isVe
   transaction.addTag(SIG_ISVERIFIED, isVerified)
   await arweave.transactions.sign(transaction, KEY)
   return await arweave.transactions.post(transaction)
+}
+
+module.exports = {
+  checkIfVerified, persistVerification, signDeclaration
 }
