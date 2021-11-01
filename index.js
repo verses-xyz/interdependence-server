@@ -5,7 +5,7 @@ const bodyParser = require('body-parser')
 const app = express()
 app.use(bodyParser.urlencoded({ extended: true }))
 
-const port = 8080
+const port = process.env.PORT || 8080
 const TWEET_TEMPLATE = "Verifying my identity to sign the Declaration of Interdependence: "
 const Twitter = require('twitter')
 const {checkIfVerified, persistVerification, signDeclaration} = require("./arweave")
