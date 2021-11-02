@@ -10,8 +10,9 @@ app.use(bodyParser.urlencoded({extended: true}))
 app.use(cors())
 
 const port = process.env.PORT || 8080
-const TWEET_TEMPLATE = "I'm verifying to be a part of interdependence.online: sig:"
+const TWEET_TEMPLATE = "I'm verifying to be a part of @verses_xyz: sig:"
 const {checkIfVerifiedAr, persistVerificationAr, signDeclarationAr, forkDeclarationAr} = require("./arweave")
+const {parse} = require("dotenv");
 
 
 const client = new Twitter({
@@ -105,12 +106,13 @@ app.post('/verify/:handle', (req, res) => {
     screen_name: handle,
     include_rts: false,
     count: 5,
+    tweet_mode: 'extended',
   }, (error, tweets, response) => {
 
     if (!error) {
       for (const tweet of tweets) {
-        const parsedAddress = tweet.text.slice(TWEET_TEMPLATE.length);
-        if (tweet.text.startsWith(TWEET_TEMPLATE) && (parsedAddress === address)) {
+        const parsedAddress = tweet.full_text.slice(TWEET_TEMPLATE.length).split(" ")[0];
+        if (tweet.full_text.startsWith(TWEET_TEMPLATE) && (parsedAddress === address)) {
           // check to see if already linked
           checkIfVerifiedAr(handle, address)
             .then(result => {
