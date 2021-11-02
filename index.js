@@ -97,7 +97,6 @@ app.post('/verify/:handle', (req, res) => {
 
     if (!error) {
       for (const tweet of tweets) {
-        console.log(tweet.full_text)
         const parsedSignature = tweet.full_text.slice(TWEET_TEMPLATE.length).split(" ")[0];
         if (tweet.full_text.startsWith(TWEET_TEMPLATE) && (parsedSignature === signature)) {
           // check to see if already linked
