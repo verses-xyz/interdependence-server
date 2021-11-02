@@ -70,7 +70,10 @@ app.post('/sign/:declaration', (req, res) => {
     checkIfVerified(handle, address).then(result => {
       const verified = !!result
       signDeclaration(declarationId, address, name, handle, verified)
-        .then((data) => res.json(data))
+        .then((data) => {
+          console.log(`new signee: ${name}, @${handle}, ${address}`)
+          res.json(data)
+        })
         .catch(e => {
           console.log(`err @ /sign/:declaration : ${e}`)
           res.status(500)
@@ -112,7 +115,10 @@ app.post('/verify/:handle', (req, res) => {
               } else {
                 // need to link
                 persistVerification(handle, address)
-                  .then((tx) => res.status(201).json(tx))
+                  .then((tx) => {
+                    console.log(`new verified user: @${handle}, ${address}`)
+                    res.status(201).json(tx)
+                  })
                   .catch(e => {
                     console.log(`err @ /verify/:handle : ${e}`)
                     res.status(500).send(JSON.stringify(e))

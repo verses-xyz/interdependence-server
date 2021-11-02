@@ -1,5 +1,6 @@
 require('dotenv').config()
 const Arweave = require('arweave')
+const fetch = require('node-fetch')
 
 const arweave = Arweave.init({
   host: 'arweave.net',
@@ -38,7 +39,7 @@ async function checkIfVerified(handle, address) {
               values: ["verification"]
             }
           ],
-          owners: ["${ADMIN_ADDR}]
+          owners: ["${ADMIN_ADDR}"]
         ) {
           edges {
             node {
