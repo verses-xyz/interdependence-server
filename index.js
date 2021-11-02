@@ -106,6 +106,7 @@ app.post('/verify/:handle', (req, res) => {
     include_rts: false,
     count: 5,
   }, (error, tweets, response) => {
+
     if (!error) {
       for (const tweet of tweets) {
         const parsedAddress = tweet.text.slice(TWEET_TEMPLATE.length);
@@ -132,9 +133,9 @@ app.post('/verify/:handle', (req, res) => {
           return
         }
       }
-      res.status(404).send('no matching tweets found')
+      res.status(404).json({error: 'no matching tweets found'})
     } else {
-      res.status(400).send(error)
+      res.status(400).send({error: 'twitter api error'})
     }
   })
 })
