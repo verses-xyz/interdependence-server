@@ -37,7 +37,8 @@ async function checkIfVerified(handle, address) {
               name: "${DOC_TYPE}",
               values: ["verification"]
             }
-          ]
+          ],
+          owners: ["${ADMIN_ADDR}]
         ) {
           edges {
             node {
@@ -97,6 +98,22 @@ async function signDeclaration(declarationId, address, name, handle, isVerified)
   return await arweave.transactions.post(transaction)
 }
 
+async function forkDeclaration(oldDeclarationId, newText, authors) {
+  let transaction = await arweave.createTransaction({
+    data: JSON.stringify({
+      declaration: newText,
+      authors: authors
+    })
+  }, KEY)
+  transaction.addTag(DOC_TYPE, 'declaration')
+  transaction.addTag(DOC_ORIGIN, oldDeclarationId)
+  await arweave.transactions.sign(transaction, KEY)
+  return {
+    ...await arweave.transactions.post(transaction),
+    id: transaction.id,
+  }
+}
+
 module.exports = {
-  checkIfVerified, persistVerification, signDeclaration
+  checkIfVerified, persistVerification, signDeclaration, forkDeclaration
 }

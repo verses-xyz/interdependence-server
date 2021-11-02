@@ -6,9 +6,9 @@ const app = express()
 app.use(bodyParser.urlencoded({ extended: true }))
 
 const port = process.env.PORT || 8080
-const TWEET_TEMPLATE = "Verifying my identity to sign the Declaration of Interdependence: "
+const TWEET_TEMPLATE = "I'm verifying to be a part of [redacted]: "
 const Twitter = require('twitter')
-const {checkIfVerified, persistVerification, signDeclaration} = require("./arweave")
+const {checkIfVerified, persistVerification, signDeclaration, forkDeclaration} = require("./arweave")
 const client = new Twitter({
   consumer_key: process.env.CONSUMER_KEY,
   consumer_secret: process.env.CONSUMER_SECRET,
@@ -30,6 +30,24 @@ app.get('/check/:handle/:address', (req, res) => {
   })
 })
 
+app.post('/fork/:declaration', (req, res) => {
+  const declarationId = req.params.declaration
+  const {
+    authors,
+    newText,
+  } = req.body
+
+  const size = Math.max(new Blob([newText]).size, new Blob(authors).size)
+  if (size >= (2 << 22)) {
+    res.status(400).json({ status: "too large"})
+    return
+  }
+
+  forkDeclaration(declarationId, newText, authors)
+    .then(res.json)
+    .catch(e => res.status(500).send(e))
+})
+
 // post: include name, address (from MM), handle
 app.post('/sign/:declaration', (req, res) => {
   const declarationId = req.params.declaration
@@ -41,7 +59,7 @@ app.post('/sign/:declaration', (req, res) => {
 
   // did the user include a handle?
   if (handle) {
-    // verify if user is signed
+    // check if user is verified
     checkIfVerified(handle, address).then(result => {
       const verified = !!result
       signDeclaration(declarationId, address, name, handle, verified)
