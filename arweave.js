@@ -19,6 +19,7 @@ const SIG_NAME = "interdependence_sig_name"
 const SIG_HANDLE = "interdependence_sig_handle"
 const SIG_ADDR = "interdependence_sig_addr"
 const SIG_ISVERIFIED = "interdependence_sig_verified"
+const SIG_SIG = "interdependence_sig_signature"
 const VERIFICATION_HANDLE = "interdependence_verif_handle"
 const VERIFICATION_ADDR = "interdependence_verif_addr"
 
@@ -87,13 +88,14 @@ async function persistVerificationAr(handle, address) {
   }
 }
 
-async function signDeclarationAr(declarationId, address, name, handle, isVerified) {
+async function signDeclarationAr(declarationId, address, name, handle, signature, isVerified) {
   let transaction = await arweave.createTransaction({ data: handle }, KEY)
   transaction.addTag(DOC_TYPE, 'signature')
   transaction.addTag(DOC_REF, declarationId)
   transaction.addTag(SIG_NAME, name)
   transaction.addTag(SIG_HANDLE, handle)
   transaction.addTag(SIG_ADDR, address)
+  transaction.addTag(SIG_SIG, signature)
   transaction.addTag(SIG_ISVERIFIED, isVerified)
   await arweave.transactions.sign(transaction, KEY)
   return await arweave.transactions.post(transaction)

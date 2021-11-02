@@ -5,7 +5,7 @@ const bodyParser = require('body-parser')
 const app = express()
 const cors = require('cors')
 const Twitter = require('twitter')
-const { Pool, Client } = require('pg')
+
 app.use(bodyParser.urlencoded({extended: true}))
 app.use(cors())
 
@@ -13,27 +13,6 @@ const port = process.env.PORT || 8080
 const TWEET_TEMPLATE = "I'm verifying to be a part of interdependence.online: sig:"
 const {checkIfVerifiedAr, persistVerificationAr, signDeclarationAr, forkDeclarationAr} = require("./arweave")
 
-// Postgres calls
-const pool = new Pool()
-
-// check signature, then save signature to db
-async function signDeclaration(declarationId, address, name, handle, signature, isVerified) {
-  return new Promise((resolve, reject) => {
-    const values = [address, signature, name, handle];
-    pool.query('INSERT INTO signatures(address, signature, name, handle) VALUES($1, $2, $3, $4) ON CONFLICT (address) DO UPDATE SET signature=EXCLUDED.signature, name=EXCLUDED.name, handle=EXCLUDED.handle', values, (err, result) => {
-      if (err) {
-        console.log('Could not save signature to db for', address, ': ', err);
-        reject();
-      } else {
-        console.log('Saved signature to db for', address);
-        resolve({
-          address,
-          signature,
-        });
-      }
-    });
-  });
-}
 
 const client = new Twitter({
   consumer_key: process.env.CONSUMER_KEY,
@@ -42,19 +21,12 @@ const client = new Twitter({
 })
 
 app.get('/', (req, res) => {
-  pool.query('SELECT address, signature, name, handle FROM signatures', (err, result) => {
-    if (err) {
-      res.status(500).json({ status: "database error"});
-    } else {
-      const results = result.rows.map(({ address, signature, name, handle }) => ({ address, signature, name, handle }));
-      res.json(results);
-    }
-  });
+  res.send('ok')
 })
 
 app.get('/check/:handle/:address', (req, res) => {
   const { handle, address } = req.params
-  checkIfVerified(handle, address).then(result => {
+  checkIfVerifiedAr(handle, address).then(result => {
     if (result) {
       res.json({ verified: true, tx: result })
     } else {
@@ -99,9 +71,9 @@ app.post('/sign/:declaration', (req, res) => {
   // did the user include a handle?
   if (handle) {
     // check if user is verified
-    checkIfVerified(handle, address).then(result => {
+    checkIfVerifiedAr(handle, address).then(result => {
       const verified = !!result
-      signDeclaration(declarationId, address, name, handle, signature, verified)
+      signDeclarationAr(declarationId, address, name, handle, signature, verified)
         .then((data) => {
           console.log(`new signee: ${name}, @${handle}, ${address}`)
           res.json(data)
@@ -113,7 +85,7 @@ app.post('/sign/:declaration', (req, res) => {
     });
   } else {
     // pure metamask sig
-    signDeclaration(declarationId, address, name, '', signature, false)
+    signDeclarationAr(declarationId, address, name, '', signature, false)
       .then((data) => res.json(data))
       .catch(e => {
         console.log(`err @ /sign/:declaration : ${e}`)
@@ -139,7 +111,7 @@ app.post('/verify/:handle', (req, res) => {
         const parsedAddress = tweet.text.slice(TWEET_TEMPLATE.length);
         if (tweet.text.startsWith(TWEET_TEMPLATE) && (parsedAddress === address)) {
           // check to see if already linked
-          checkIfVerified(handle, address)
+          checkIfVerifiedAr(handle, address)
             .then(result => {
               if (result) {
                 // already linked
