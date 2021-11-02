@@ -9,7 +9,7 @@ app.use(bodyParser.urlencoded({extended: true}))
 app.use(cors())
 
 const port = process.env.PORT || 8080
-const TWEET_TEMPLATE = "I'm verifying to be a part of [redacted]: "
+const TWEET_TEMPLATE = "I'm verifying to be a part of interdependence.online: sig:"
 const {checkIfVerified, persistVerification, signDeclaration, forkDeclaration} = require("./arweave")
 
 const client = new Twitter({
