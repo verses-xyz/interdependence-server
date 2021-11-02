@@ -3,12 +3,15 @@ const express = require('express')
 const bodyParser = require('body-parser')
 
 const app = express()
-app.use(bodyParser.urlencoded({ extended: true }))
+const cors = require('cors')
+const Twitter = require('twitter')
+app.use(bodyParser.urlencoded({extended: true}))
+app.use(cors())
 
 const port = process.env.PORT || 8080
 const TWEET_TEMPLATE = "I'm verifying to be a part of [redacted]: "
-const Twitter = require('twitter')
 const {checkIfVerified, persistVerification, signDeclaration, forkDeclaration} = require("./arweave")
+
 const client = new Twitter({
   consumer_key: process.env.CONSUMER_KEY,
   consumer_secret: process.env.CONSUMER_SECRET,
@@ -37,15 +40,19 @@ app.post('/fork/:declaration', (req, res) => {
     newText,
   } = req.body
 
-  const size = Math.max(new Blob([newText]).size, new Blob(authors).size)
+  const byteSize = txt => Buffer.from(txt).byteLength
+  const size = Math.max(byteSize(newText), byteSize(authors))
   if (size >= (2 << 22)) {
     res.status(400).json({ status: "too large"})
     return
   }
 
   forkDeclaration(declarationId, newText, authors)
-    .then(res.json)
-    .catch(e => res.status(500).send(e))
+    .then((data) => res.json(data))
+    .catch(e => {
+      console.log(`err @ /fork/:declaration : ${e}`)
+      res.status(500)
+    })
 })
 
 // post: include name, address (from MM), handle
@@ -63,14 +70,20 @@ app.post('/sign/:declaration', (req, res) => {
     checkIfVerified(handle, address).then(result => {
       const verified = !!result
       signDeclaration(declarationId, address, name, handle, verified)
-        .then(res.json)
-        .catch(e => res.status(500).send(e))
+        .then((data) => res.json(data))
+        .catch(e => {
+          console.log(`err @ /sign/:declaration : ${e}`)
+          res.status(500)
+        })
     })
   } else {
     // pure metamask sig
     signDeclaration(declarationId, address, name, '', false)
-      .then(res.json)
-      .catch(e => res.status(500).send(e))
+      .then((data) => res.json(data))
+      .catch(e => {
+        console.log(`err @ /sign/:declaration : ${e}`)
+        res.status(500)
+      })
   }
 })
 
@@ -100,7 +113,10 @@ app.post('/verify/:handle', (req, res) => {
                 // need to link
                 persistVerification(handle, address)
                   .then((tx) => res.status(201).json(tx))
-                  .catch(e => res.status(500).send(e))
+                  .catch(e => {
+                    console.log(`err @ /verify/:handle : ${e}`)
+                    res.status(500).send(JSON.stringify(e))
+                  })
               }
             })
           return
