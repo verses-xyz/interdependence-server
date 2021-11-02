@@ -22,7 +22,7 @@ const SIG_ISVERIFIED = "interdependence_sig_verified"
 const VERIFICATION_HANDLE = "interdependence_verif_handle"
 const VERIFICATION_ADDR = "interdependence_verif_addr"
 
-async function checkIfVerified(handle, address) {
+async function checkIfVerifiedAr(handle, address) {
   const req = await fetch('https://arweave.net/graphql', {
     method: 'POST',
     headers: {
@@ -73,7 +73,7 @@ async function checkIfVerified(handle, address) {
   return false
 }
 
-async function persistVerification(handle, address) {
+async function persistVerificationAr(handle, address) {
   let transaction = await arweave.createTransaction({
     data: handle
   }, KEY)
@@ -87,7 +87,7 @@ async function persistVerification(handle, address) {
   }
 }
 
-async function signDeclaration(declarationId, address, name, handle, isVerified) {
+async function signDeclarationAr(declarationId, address, name, handle, isVerified) {
   let transaction = await arweave.createTransaction({ data: handle }, KEY)
   transaction.addTag(DOC_TYPE, 'signature')
   transaction.addTag(DOC_REF, declarationId)
@@ -99,7 +99,7 @@ async function signDeclaration(declarationId, address, name, handle, isVerified)
   return await arweave.transactions.post(transaction)
 }
 
-async function forkDeclaration(oldDeclarationId, newText, authors) {
+async function forkDeclarationAr(oldDeclarationId, newText, authors) {
   let transaction = await arweave.createTransaction({
     data: JSON.stringify({
       declaration: newText,
@@ -116,5 +116,5 @@ async function forkDeclaration(oldDeclarationId, newText, authors) {
 }
 
 module.exports = {
-  checkIfVerified, persistVerification, signDeclaration, forkDeclaration
+  checkIfVerifiedAr, persistVerificationAr, signDeclarationAr, forkDeclarationAr
 }
