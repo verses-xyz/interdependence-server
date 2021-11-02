@@ -12,8 +12,6 @@ app.use(cors())
 const port = process.env.PORT || 8080
 const TWEET_TEMPLATE = "I'm verifying to be a part of @verses_xyz: sig:"
 const {checkIfVerifiedAr, persistVerificationAr, signDeclarationAr, forkDeclarationAr} = require("./arweave")
-const {parse} = require("dotenv");
-
 
 const client = new Twitter({
   consumer_key: process.env.CONSUMER_KEY,
@@ -23,17 +21,6 @@ const client = new Twitter({
 
 app.get('/', (req, res) => {
   res.send('ok')
-})
-
-app.get('/check/:handle/:address', (req, res) => {
-  const { handle, address } = req.params
-  checkIfVerifiedAr(handle, address).then(result => {
-    if (result) {
-      res.json({ verified: true, tx: result })
-    } else {
-      res.json({ verified: false })
-    }
-  })
 })
 
 app.post('/fork/:declaration', (req, res) => {
@@ -67,12 +54,11 @@ app.post('/sign/:declaration', (req, res) => {
     handle,
     signature,
   } = req.body
-  console.log(signature);
 
   // did the user include a handle?
   if (handle) {
     // check if user is verified
-    checkIfVerifiedAr(handle, address).then(result => {
+    checkIfVerifiedAr(handle, signature).then(result => {
       const verified = !!result
       signDeclarationAr(declarationId, address, name, handle, signature, verified)
         .then((data) => {
@@ -99,7 +85,7 @@ app.post('/sign/:declaration', (req, res) => {
 app.post('/verify/:handle', (req, res) => {
   const handle = req.params.handle
   const {
-    address,
+    address: signature,
   } = req.body
 
   client.get('statuses/user_timeline', {
@@ -111,19 +97,21 @@ app.post('/verify/:handle', (req, res) => {
 
     if (!error) {
       for (const tweet of tweets) {
-        const parsedAddress = tweet.full_text.slice(TWEET_TEMPLATE.length).split(" ")[0];
-        if (tweet.full_text.startsWith(TWEET_TEMPLATE) && (parsedAddress === address)) {
+        const parsedSignature = tweet.full_text.slice(TWEET_TEMPLATE.length).split(" ")[0];
+        if (tweet.full_text.startsWith(TWEET_TEMPLATE) && (parsedSignature === signature)) {
           // check to see if already linked
-          checkIfVerifiedAr(handle, address)
+
+          checkIfVerifiedAr(handle, signature)
             .then(result => {
               if (result) {
                 // already linked
+                console.log(`already verified user: @${handle}`)
                 res.json({ tx: result })
               } else {
                 // need to link
-                persistVerificationAr(handle, address)
+                persistVerificationAr(handle, signature)
                   .then((tx) => {
-                    console.log(`new verified user: @${handle}, ${address}`)
+                    console.log(`new verified user: @${handle}, ${signature}`)
                     res.status(201).json(tx)
                   })
                   .catch(e => {
@@ -135,9 +123,9 @@ app.post('/verify/:handle', (req, res) => {
           return
         }
       }
-      res.status(404).json({error: 'no matching tweets found'})
+      res.status(500).json({message: 'No matching Tweets found'})
     } else {
-      res.status(400).send({error: 'twitter api error'})
+      res.status(500).send({message: 'Internal Error'})
     }
   })
 })
