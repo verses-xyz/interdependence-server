@@ -89,7 +89,7 @@ async function persistVerificationAr(handle, address) {
 }
 
 async function signDeclarationAr(declarationId, address, name, handle, signature, isVerified) {
-  let transaction = await arweave.createTransaction({ data: handle }, KEY)
+  let transaction = await arweave.createTransaction({ data: address }, KEY)
   transaction.addTag(DOC_TYPE, 'signature')
   transaction.addTag(DOC_REF, declarationId)
   transaction.addTag(SIG_NAME, name)
