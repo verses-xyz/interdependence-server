@@ -5,13 +5,13 @@ const bodyParser = require('body-parser')
 const app = express()
 const cors = require('cors')
 const Twitter = require('twitter')
+const {checkIfVerifiedAr, persistVerificationAr, signDocumentAr, forkDocumentAr} = require("./arweave")
 
 app.use(bodyParser.urlencoded({extended: true}))
 app.use(cors())
 
 const port = process.env.PORT || 8080
 const TWEET_TEMPLATE = "I am verifying for @verses_xyz: sig:"
-const {checkIfVerifiedAr, persistVerificationAr, signDocumentAr, forkDocumentAr} = require("./arweave")
 
 const client = new Twitter({
   consumer_key: process.env.CONSUMER_KEY,
@@ -24,20 +24,24 @@ app.get('/', (req, res) => {
 })
 
 app.post('/fork/:document', (req, res) => {
-  const documentId = req.params.document
+  const documentId = req.params.document // if undefined, create new document
   const {
     authors,
-    newText,
+    text,
+    title,
   } = req.body
 
-  const byteSize = txt => Buffer.from(txt).byteLength
-  const size = Math.max(byteSize(newText), byteSize(authors))
-  if (size >= (2 << 22)) {
+  const totalSize = [authors, text, title]
+    .map(arg => arg || "")
+    .map(txt => Buffer.from(txt).byteLength)
+    .reduce((size, total) => size + total, 0)
+
+  if (totalSize >= (2 << 22)) {
     res.status(400).json({ status: "too large"})
     return
   }
 
-  forkDocumentAr(documentId, newText, authors)
+  forkDocumentAr(documentId, text, title, authors)
     .then((data) => res.json(data))
     .catch(e => {
       console.log(`err @ /fork/:document : ${e}`)
