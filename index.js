@@ -11,7 +11,7 @@ app.use(cors())
 
 const port = process.env.PORT || 8080
 const TWEET_TEMPLATE = "I am verifying for @verses_xyz: sig:"
-const {checkIfVerifiedAr, persistVerificationAr, signDeclarationAr, forkDeclarationAr} = require("./arweave")
+const {checkIfVerifiedAr, persistVerificationAr, signDocumentAr, forkDocumentAr} = require("./arweave")
 
 const client = new Twitter({
   consumer_key: process.env.CONSUMER_KEY,
@@ -23,8 +23,8 @@ app.get('/', (req, res) => {
   res.send('ok')
 })
 
-app.post('/fork/:declaration', (req, res) => {
-  const declarationId = req.params.declaration
+app.post('/fork/:document', (req, res) => {
+  const documentId = req.params.document
   const {
     authors,
     newText,
@@ -37,17 +37,17 @@ app.post('/fork/:declaration', (req, res) => {
     return
   }
 
-  forkDeclarationAr(declarationId, newText, authors)
+  forkDocumentAr(documentId, newText, authors)
     .then((data) => res.json(data))
     .catch(e => {
-      console.log(`err @ /fork/:declaration : ${e}`)
+      console.log(`err @ /fork/:document : ${e}`)
       res.status(500)
     })
 })
 
 // post: include name, address (from MM), handle
-app.post('/sign/:declaration', (req, res) => {
-  const declarationId = req.params.declaration
+app.post('/sign/:document', (req, res) => {
+  const documentId = req.params.document
   const {
     name,
     address,
@@ -60,22 +60,22 @@ app.post('/sign/:declaration', (req, res) => {
     // check if user is verified
     checkIfVerifiedAr(handle, signature).then(result => {
       const verified = !!result
-      signDeclarationAr(declarationId, address, name, handle, signature, verified)
+      signDocumentAr(documentId, address, name, handle, signature, verified)
         .then((data) => {
           console.log(`new signee: ${name}, @${handle}, ${address}`)
           res.json(data)
         })
         .catch(e => {
-          console.log(`err @ /sign/:declaration : ${e}`)
+          console.log(`err @ /sign/:document : ${e}`)
           res.status(500)
         });
     });
   } else {
     // pure metamask sig
-    signDeclarationAr(declarationId, address, name, '', signature, false)
+    signDocumentAr(documentId, address, name, '', signature, false)
       .then((data) => res.json(data))
       .catch(e => {
-        console.log(`err @ /sign/:declaration : ${e}`)
+        console.log(`err @ /sign/:document : ${e}`)
         res.status(500)
       })
   }

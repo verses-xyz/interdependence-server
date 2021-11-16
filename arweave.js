@@ -88,10 +88,10 @@ async function persistVerificationAr(handle, address) {
   }
 }
 
-async function signDeclarationAr(declarationId, address, name, handle, signature, isVerified) {
+async function signDocumentAr(documentId, address, name, handle, signature, isVerified) {
   let transaction = await arweave.createTransaction({ data: address }, KEY)
   transaction.addTag(DOC_TYPE, 'signature')
-  transaction.addTag(DOC_REF, declarationId)
+  transaction.addTag(DOC_REF, documentId)
   transaction.addTag(SIG_NAME, name)
   transaction.addTag(SIG_HANDLE, handle)
   transaction.addTag(SIG_ADDR, address)
@@ -101,15 +101,15 @@ async function signDeclarationAr(declarationId, address, name, handle, signature
   return await arweave.transactions.post(transaction)
 }
 
-async function forkDeclarationAr(oldDeclarationId, newText, authors) {
+async function forkDocumentAr(oldDocumentId, newText, authors) {
   let transaction = await arweave.createTransaction({
     data: JSON.stringify({
-      declaration: newText,
+      document: newText,
       authors: authors
     })
   }, KEY)
-  transaction.addTag(DOC_TYPE, 'declaration')
-  transaction.addTag(DOC_ORIGIN, oldDeclarationId)
+  transaction.addTag(DOC_TYPE, 'document')
+  transaction.addTag(DOC_ORIGIN, oldDocumentId)
   await arweave.transactions.sign(transaction, KEY)
   return {
     ...await arweave.transactions.post(transaction),
@@ -118,5 +118,5 @@ async function forkDeclarationAr(oldDeclarationId, newText, authors) {
 }
 
 module.exports = {
-  checkIfVerifiedAr, persistVerificationAr, signDeclarationAr, forkDeclarationAr
+  checkIfVerifiedAr, persistVerificationAr, signDocumentAr, forkDocumentAr
 }
