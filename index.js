@@ -5,6 +5,7 @@ const bodyParser = require('body-parser')
 const app = express()
 const cors = require('cors')
 const Twitter = require('twitter')
+const Cache = require('./cache')
 const {checkIfVerifiedAr, persistVerificationAr, signDocumentAr, forkDocumentAr} = require("./arweave")
 
 app.use(bodyParser.urlencoded({extended: true}))
@@ -18,6 +19,8 @@ const client = new Twitter({
   consumer_secret: process.env.CONSUMER_SECRET,
   bearer_token: process.env.BEARER_TOKEN
 })
+
+const sigCache = new Cache()
 
 app.get('/', (req, res) => {
   res.send('ok')
@@ -62,18 +65,22 @@ app.post('/sign/:document', (req, res) => {
   // did the user include a handle?
   if (handle) {
     // check if user is verified
-    checkIfVerifiedAr(handle, signature).then(result => {
-      const verified = !!result
-      signDocumentAr(documentId, address, name, handle, signature, verified)
-        .then((data) => {
-          console.log(`new signee: ${name}, @${handle}, ${address}`)
-          res.json(data)
-        })
-        .catch(e => {
-          console.log(`err @ /sign/:document : ${e}`)
-          res.status(500)
-        });
-    });
+    const promise = sigCache.has(handle) ?
+      signDocumentAr(documentId, address, name, handle, signature, true) :
+      checkIfVerifiedAr(handle, signature).then(result => {
+        const verified = !!result
+        return signDocumentAr(documentId, address, name, handle, signature, verified)
+      })
+
+    promise
+      .then((data) => {
+        console.log(`new signee: ${name}, @${handle}, ${address}`)
+        res.json(data)
+      })
+      .catch(e => {
+        console.log(`err @ /sign/:document : ${e}`)
+        res.status(500)
+      });
   } else {
     // pure metamask sig
     signDocumentAr(documentId, address, name, '', signature, false)
@@ -91,6 +98,13 @@ app.post('/verify/:handle', (req, res) => {
   const {
     address: signature,
   } = req.body
+
+  if (sigCache.has(handle)) {
+    console.log(`already verified user: @${handle}`)
+    const txId = sigCache.get(handle)
+    res.json({ tx: txId })
+    return
+  }
 
   client.get('statuses/user_timeline', {
     screen_name: handle,
@@ -110,12 +124,14 @@ app.post('/verify/:handle', (req, res) => {
               if (result) {
                 // already linked
                 console.log(`already verified user: @${handle}`)
+                sigCache.set(handle, result)
                 res.json({ tx: result })
               } else {
                 // need to link
                 persistVerificationAr(handle, signature)
                   .then((tx) => {
                     console.log(`new verified user: @${handle}, ${signature}`)
+                    sigCache.set(handle, tx)
                     res.status(201).json(tx)
                   })
                   .catch(e => {
